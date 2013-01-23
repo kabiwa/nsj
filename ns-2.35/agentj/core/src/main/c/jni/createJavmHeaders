@@ -1,0 +1,2 @@
+ 
+javah -classpath ../../../../target/classes -jni -d ./jniheaders java.net.SocketOptions agentj.nativeimp.NsSocketImpl agentj.nativeimp.NsDatagramSocketImpl agentj.nativeimp.SocketInputStream agentj.nativeimp.SocketOutputStream agentj.nativeimp.ProtolibTimer agentj.nativeimp.util.DataPacket agentj.AgentJAgent

@@ -1,0 +1,372 @@
+\chapter{Installing the \agentj~Toolkit}
+\label{install}
+
+This chapter describes the installation of \agentj~toolkit and is divided into two sections.  The first describes how to install the native implementation of AgentJ into NS-2, which involves several stages and modification to the Ns-2 makefile, and the second involves the somewhat simpler installation of the Java code.
+
+\section{Installing the C++ Code}
+\label{install:agentj}
+
+\index{C++ installation}
+
+AgentJ has
+three dependencies, which have to be downloaded and installed \textbf{first} before AgentJ
+can be added. These are:
+
+\begin{enumerate}
+\item \textbf{Ns-2:} Full instructions for downloading and installation of ns-2.34 can be found at the project's Web site at \emph{http://www.isi.edu/nsnam/ns/} or type ``ns-2'' into Google and hit ``I'm Feeling Lucky''.
+\item \sloppypar \textbf{Protolib:}  can be downloaded and installed from \newline \emph{http://downloads.pf.itd.nrl.navy.mil/protolib/nightly\_snapshots/protolib-svnsnap.tgz} or again ``protolib'' and ``I'm Feeling Lucky'' in Google will also do the trick.
+\item \sloppypar \textbf{JDK6:} is available at \newline \emph{http://java.sun.com/javase/downloads/widget/jdk6.jsp}
+\end{enumerate}
+
+\index{Protolib Installation}
+\index{Ns-2 Installation}
+
+The following steps describe how to install Agentj on top of Ns-2:
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 1:}
+
+Download AgentJ: Get a nightly build at 
+
+\footnotesize
+\begin{verbatim}
+http://downloads.pf.itd.nrl.navy.mil/agentj/nightly_snapshots/
+\end{verbatim}
+\normalsize
+
+\index{Download AgentJ}
+
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 2:}
+
+First, the Ns2 ``Makefile.in'' needs to be modified in order to 
+build an \agentj-enabled version of the Ns2 environment. The 
+\emph{Makefile.in} file can be found in the current release in the 
+ns-2.34 directory of the ns source tree (i.e. ns-allinone-2.34). A copy of my Makefile.in is
+provided in the nightly build in the agentj/doc/ns2buildfiles/ns234 directory. Rename the
+Makefile that is suitable for your operating system (i.e. mac or Linux) to 
+\emph{Makefile.in} and overwrite the ns-2.34 Makefile.in with that file. It is recommended that after downloading and extracting Protolib you put the directory protolib as a subdirectory of ns-2.34 (i.e. ns-allinone-2.34/ns-2.34/protolib). Otherwise you have to modify the \emph{Makefile.in} at the "PROTOLIB Section" section accordingly.  
+
+
+%\newpage
+
+\noindent \textbf{Step 3:}
+
+Set the environment variables. You need to set AGENTJ to the home directory of AGENTJ and then add the library path to the library path environment variable (LD\_LIBRARY\_PATH), and the JAVA\_HOME that points to your JDK6, as in the following example for linux. In addition, you have to set your CLASSPATH to include the AgentJ classes. Please change the path names accordingly.
+
+\footnotesize
+\begin{verbatim}
+export AGENTJ=/home/username/Apps/agentj
+
+export LD_LIBRARY_PATH=$AGENTJ/core/lib/:$JAVA_HOME/jre/lib/i386/: \ 
+     $JAVA_HOME/jre/lib/i386/server:$JAVA_HOME/jre/lib/amd64: \ 
+     $JAVA_HOME/jre/lib/amd64/server
+
+export JAVA_HOME=/usr/java/jdk-1.6.0/
+
+export AGENTJ_CLASSPATH=/path/to/your/java/classes
+   
+\end{verbatim}
+\normalsize
+
+\noindent where:
+\begin{itemize}
+\item \textbf{AGENTJ:} is used to specify the installation directory of the agentj
+package. This is used by the Makefile.in NS-2 makefile and also used within the other environment variables defined here.
+
+\item \textbf{LD\_LIBRARY\_PATH:} the standard environment variable for specifying where to find libraries.  Here, I extend this to include the \agentj~lib directory.
+
+\item \textbf{JAVA\_HOME:} the standard environment variable for specifying the path to your JDK 1.6.
+
+\item \textbf{AGENTJ\_CLASSPATH:} this points to the classes (or jar files) containing your Java applications that you want to run in Ns2.
+
+\end{itemize}
+
+\index{LD\_LIBRARY\_PATH  Environment Variable}
+\index{AGENTJ Environment Variable}
+\index{JAVA\_HOME}
+\index{AGENTJ\_CLASSPATH}
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 4:}
+Copy the folders \texttt{common}, \texttt{queue}, and \texttt{trace} from the \texttt{\$AGENTJ/doc/ns2buildfiles/ns234} folder to the ns-allinone-2.34/ns-2.34 folder.
+
+
+\textbf{Note: Steps 5-9 are only necessary if you did not replace the Makefile.in of ns-2 as explained in step 2, but rather prefer to patch the Makefile manually.}
+
+\vspace{0.3in}
+
+\noindent \textbf{Step 5:}
+
+Add the following variables to your Makefile.in file (near the top, just after you inserted the Protolib variables): 
+
+\index{Makefile.in}
+ 
+\footnotesize
+\begin{verbatim}
+AGENTJ_SRC = $(AGENTJ)/core/src/main/c
+AGENTJ_LIB_DIR = $(AGENTJ)/core/lib
+AGENTJ_C_SRC = $(AGENTJ_SRC)/agentj
+AGENTJ_UTILS = $(AGENTJ_SRC)/utils
+AGENTJ_JNI = $(AGENTJ_SRC)/jni
+
+AGENTJ_INCLUDES = -I$(JAVA_HOME)/include -I$(JAVA_HOME)/include/linux \
+     -I$(AGENTJ_C_SRC) -I$(AGENTJ_UTILS) -I$(AGENTJ_JNI) -I$(AGENTJ_JNI)/jniheaders
+
+AGENTJ_LIB = -L$(JAVA_HOME)/jre/lib/i386/server/ -L$(JAVA_HOME)/jre/lib/i386/ \ 
+      -L$(JAVA_HOME)/jre/lib/amd64 -L$(JAVA_HOME)/jre/lib/amd64/server/ -ljvm
+AGENTJ_SHARED_LDFLAGS = -shared -fPIC
+
+OBJ_AGENTJ_CPP = $(AGENTJ_UTILS)/LinkedList.o \
+    $(AGENTJ_C_SRC)/AgentjVirtualMachine.o $(AGENTJ_C_SRC)/Agentj.o \
+    $(AGENTJ_JNI)/SocketWrapper.o $(AGENTJ_JNI)/JAVMSocketImp.o\
+    $(AGENTJ_JNI)/JAVMTcpSocket.o $(AGENTJ_JNI)/JAVMDatagramSocket.o\
+    $(AGENTJ_JNI)/TimerWrapper.o $(AGENTJ_JNI)/JAVMTimer.o \
+    $(AGENTJ_C_SRC)/AgentJRouter.o \
+    $(AGENTJ_C_SRC)/Ns2MobileNode.o	
+\end{verbatim}
+\normalsize
+	
+\vspace{0.1in}
+\noindent \textbf{Step 6:}
+
+Provide paths to the AGENTJ include files by adding AGENTJ\_INCLUDES to the ``INCLUDES'' macro  already defined in the  ns "Makefile.in", for example:
+    
+\footnotesize
+\begin{verbatim}
+INCLUDES = \
+	-I. \
+	@V_INCLUDES@ \
+	-I./tcp -I./sctp -I./common -I./link -I./queue \
+	-I./adc -I./apps -I./mac -I./mobile -I./trace \
+	-I./routing -I./tools -I./classifier -I./mcast \
+	-I./diffusion3/lib/main -I./diffusion3/lib \
+	-I./diffusion3/lib/nr -I./diffusion3/ns \
+	-I./diffusion3/filter_core -I./asim/ -I./qs \
+	-I./diffserv -I./satellite \
+	-I./wpan \
+	$(AGENTJ_INCLUDES)
+\end{verbatim}
+\normalsize
+        
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 7:}
+
+Add the list of AGENTJ object files to get compiled and linked during the ns build.  For example, modify Makefile.in lines to the following
+
+\footnotesize
+\begin{verbatim}
+SRC =	$(OBJ_C:.o=.c) $(OBJ_CC:.o=.cc) $(OBJ_AGENTJ_CPP:.o=.cpp) \
+	$(OBJ_EMULATE_C:.o=.c) $(OBJ_EMULATE_CC:.o=.cc) \
+	common/tclAppInit.cc common/tkAppInit.cc 
+
+OBJ =	$(OBJ_C) $(OBJ_CC) $(OBJ_GEN) $(OBJ_COMPAT) $(OBJ_AGENTJ_CPP)
+\end{verbatim}
+\normalsize
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 8:}
+
+Add the rule for .cpp files to ns-2 ``Makefile.in'' ( \textbf{NOTE} this has already been done - if you have installed  protolib correctly):
+
+\footnotesize
+\begin{verbatim}
+.cpp.o:
+	    @rm -f $@
+	    $(CC) -c $(CFLAGS) $(INCLUDES) -o $@ $*.cpp
+        
+ and add to the ns-2 Makefile.in ``SRC'' macro definition:
+    
+    $(OBJ_CPP:.o=.cpp)
+\end{verbatim}
+\normalsize
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 9:}
+
+\index{Creating the Shared Library}
+
+Create a shared library - define compile-time SHARED 
+Library flags and  libraries needed for your platform to 
+create a shared library (this is needed for the JNI binding). 
+On Mac OS 10.x, these are defined as follows:
+
+\footnotesize
+\begin{verbatim}
+AGENTJ_LIB = -framework JavaVM
+AGENTJ_SHARED_LDFLAGS = -dynamiclib -lresolv
+\end{verbatim}
+\normalsize
+
+\noindent And the new rule for making the shared library should look like this:
+
+\index{Mac Os Installation}
+
+\footnotesize
+\begin{verbatim}
+libagentj.jnilib: $(OBJ) common/tclAppInit.o
+	$(LINK) $(AGENTJ_SHARED_LDFLAGS) -o $@ common/tclAppInit.o $(OBJ) $(LIB)
+	mv libagentj.jnilib $(AGENTJ_LIB_DIR)    
+\end{verbatim}
+\normalsize
+
+
+\noindent or for Linux, these flags are defined as follows:
+
+\index{Linux Installation}
+
+\footnotesize
+\begin{verbatim}
+AGENTJ_LIB = -L$(JAVA_HOME)/jre/lib/i386/server/ -L$(JAVA_HOME)/jre/lib/i386/ \
+	-L$(JAVA_HOME)/jre/lib/amd64 -L$(JAVA_HOME)/jre/lib/amd64/server/ -ljvm
+AGENTJ_SHARED_LDFLAGS = -shared
+\end{verbatim}
+\normalsize
+
+
+\noindent and adding AGENTJ\_LIB to the ``LIB'' macro already defined in the ns ``Makefile.in'', e.g.:
+    
+\footnotesize
+\begin{verbatim}
+    LIB	= \
+	@V_LIBS@ \
+	$(AGENTJ_LIB) \
+	@V_LIB@ \
+	-lm @LIBS@
+\end{verbatim}
+\normalsize
+
+\noindent  and adding a new rule to make the shared library and put it in the correct place. For Linux, do:
+
+\footnotesize
+\begin{verbatim}
+libagentj.so: $(OBJ) common/tclAppInit.o
+	$(LINK) $(AGENTJ_SHARED_LDFLAGS) -o $@ common/tclAppInit.o $(OBJ) $(LIB)
+	mv libagentj.so $(AGENTJ_LIB_DIR)
+\end{verbatim}
+\normalsize
+
+\noindent For Linux, you also need to change the build rule for NS. This should be right under the line
+\begin{verbatim}
+# default for all systems but cygwin
+\end{verbatim}
+\noindent Replace the build rule by:
+
+\begin{verbatim}
+NS_CPPFLAGS = -DNSLIBNAME=\"libagentj.so\"
+NS_LIBS =  -ldl
+
+
+$(NS): libagentj.so common/main-modular.cc
+        $(LINK) $(NS_CPPFLAGS) $(LDFLAGS) $(LDOUT)$@ \
+	common/main-modular.cc $(NS_LIBS)
+
+\end{verbatim}
+
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 9:}
+
+Run 
+\footnotesize
+\begin{verbatim}
+./configure 
+\end{verbatim}
+\normalsize
+
+\noindent in the ns source directory to create a new Makefile 
+
+\vspace{0.1in}
+
+\noindent \textbf{Step 10:}
+
+Type:
+
+\footnotesize
+\begin{verbatim}
+make
+\end{verbatim}
+\normalsize
+
+\noindent  to rebuild ns - this creates the static library
+      
+\vspace{0.1in}
+
+\noindent \textbf{Step 11:}
+
+If you are using Mac, for compiling the Native Code, do not forget to type:
+
+\footnotesize
+\begin{verbatim}
+make libagentj.jnilib
+\end{verbatim}
+\normalsize
+
+ \noindent to make the dynamic library  needed for the installation of the JNI frameworks.
+
+
+\section{Installing the Java Code}
+\label{sec:installjava}
+
+\index{Java installation}
+
+Java has one dependency if you choose to command-line install:
+
+\begin{enumerate}
+\item \textbf{Apache Maven:} for compiling the Java classes we use Apache Maven. Maven can be found at the apache Web site \emph{http://maven.apache.org/} or Google maven if you're feeling lucky.
+\end{enumerate}
+ 
+And, so after the C++ part... finally, to compile the Java code, you do the following:
+
+\footnotesize
+\begin{verbatim}
+cd $AGENTJ
+mvn install
+\end{verbatim}
+\normalsize
+
+
+\section{Additional installation steps for using AgentJ as a routing protocol}
+\label{sec:additionalinstall}
+If you want to use your Java routing protocol within AgentJ\footnote{Description of how to do so will soon be added in the manual}, you also have to copy some files into the Ns2 directory.
+
+\begin{verbatim}
+cp -r $AGENTJ/doc/ns2buildfiles/ns234/common $AGENTJ/../
+cp -r $AGENTJ/doc/ns2buildfiles/ns234/trace  $AGENTJ/../
+cp -r $AGENTJ/doc/ns2buildfiles/ns234/queue  $AGENTJ/../
+cp -r $AGENTJ/doc/ns2buildfiles/ns234/tcl    $AGENTJ/../
+\end{verbatim}
+
+This allows to add AgentJ as routing protocol to AgentJ, and to trace packets that are sent using a Java routing protocol.
+
+
+
+\section{Special instructions for 64-bit Linux operating systems}
+\label{sec:install64bits}
+
+If you get the following error
+
+\begin{verbatim}
+relocation R_X86_64_32 against `a local symbol' can not be used
+when making a shared object; recompile with -fPIC
+\end{verbatim}
+
+you need to add the -fPIC flag to all CFLAGS and LDFLAGS in the Makefile. If you followed the instruction in section~\ref{install:agentj} and replaced the Makefile.in, ns-2.34 should already be patched. However, you also need to add -fPIC in the Makefile.in files of tclcl and otcl (in the nsallinone-2.33 directory).
+
+
+
+
+
+
+
+ 
+ 

@@ -1,0 +1,59 @@
+%\documentclass[envcountsame,envcountchap]{styles/svmono}
+\documentclass[12pt,a4paper]{book}
+
+\usepackage{makeidx}     % allows index generation
+\usepackage[pdftex]{graphicx}    % standard LaTeX graphics tool
+                         % when including figure files
+
+\usepackage{multicol}    % used for the two-column index
+
+\makeindex           
+
+\begin{document}
+
+% someone can design a better one of these later ...
+\newcommand{\agentj}{\textbf{A}g\textbf{e}n\textbf{t}\emph{j}}
+
+\author{Ian J. Taylor}
+\title{\agentj \\
+{\small Java Agent Framework for NS2}}
+\maketitle
+
+\frontmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents
+
+\mainmatter
+
+
+\part{Introduction, Overview and Installation}
+
+In this part, we given an introduction and overview of \agentj~including the underlying technologuies that \agentj~encapsulates.  We then provide a detail account of how to install \agentj~into the NS2 simulation environment for the simulation of Java distributed applications.
+
+\include{chapters/intro}
+\include{chapters/install}
+
+\part{\agentj~Design and Implementation}
+
+In this part, we describe the design and implemantation of \agentj. We describe the underlying toolkit, Protoli and PAI and then describe how \agentj~extends this behaviour into NS2 to provide a generic interface for simulating Java applications.
+ 
+\include{chapters/protolib}
+\include{chapters/pai}
+\include{chapters/agentjImp}
+
+\part{Using \agentj}
+
+In this part, we describe \agentj~from a user's perspective.  A typical user of \agentj~would be a programmer of a Java application who would like to simulate their distributed application within NS2.  In this part therefore, we describe how this can be achieved 
+and which interfaces need to be implemented in order to build a bridge between NS2 and your distributed Java application.  A comprehensive example of such an integration can be found in the accompanying manual for P2PSX \cite{p2psx}, which integrates a comprehensive P2P middleware system into NS2 using \agentj. 
+
+\include{chapters/usingagentj}
+\include{chapters/usingagentjadv}
+
+\backmatter%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\include{chapters/references}
+
+\printindex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

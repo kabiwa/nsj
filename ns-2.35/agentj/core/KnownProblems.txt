@@ -1,0 +1,101 @@
+1. Closing an output stream that has been connected to the socket closes the socket also, so:
+
+           out = new PrintWriter(kkSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(kkSocket.getInputStream()));
+
+            out.println("Hello server, are you working?");
+            out.flush();
+
+            out.close();                // HERE !!!!
+
+            String inputLine;
+
+            System.out.println("SimpleTCPClient: Data sent, now awaiting reply ...");
+
+            inputLine = in.readLine();
+
+            System.out.println("SimpleTCPClient, receing Message !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" );
+            System.out.println("--> " + inputLine);
+
+
+            in.close();
+            kkSocket.close();
+
+Will result in the message enver being received because the out.close has already closed the
+socket and remove it from the agent.
+
+WORKAROUND:
+
+           out = new PrintWriter(kkSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(kkSocket.getInputStream()));
+
+            out.println("Hello server, are you working?");
+            out.flush();
+
+
+            String inputLine;
+
+            System.out.println("SimpleTCPClient: Data sent, now awaiting reply ...");
+
+            inputLine = in.readLine();
+
+            System.out.println("SimpleTCPClient, receing Message !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" );
+            System.out.println("--> " + inputLine);
+
+            out.close();                // MOVE HERE !!!!
+            in.close();
+            kkSocket.close();
+
+Is this a bug ? Need to verify
+
+2. C2JBroker needs cleanig up - every method needs checkiong for cleaning up memory opf
+memory allocated during the invocation.  This is legacy code.  This is the most likely cause
+for the memory leak.
+
+3.  Need to verify that the ID of the receiving socket is correct i.e. whether the server is
+correctly passing the responsibility of the socket to the new socket passed to accept()
+
+4. I had to make all DataPacket methods non synchronized - callbacks cannot invoke synchronised methods 
+i.e. I have C++ calling back to Java (with an event notification), which in turn invokes C++ to read the data, which
+has to access the datapacket synchronised method. It doesn't work for some reason. The code just hangs at
+these invocations.  My fix was to remove the synchronised keywords in Java which solved the problem.  I don't 
+understand how these should work though or if there is a better workaround. Maybe this behaviour is correct. Sun
+implement their callbacks in C++ but callback to Java. Maybe we can do the same as Sun but that limits flexibility
+I think. 
+
+
+5. Agentj Has been completely refactored. You must update your AgentJ nodes with minor changes. Here is an example:
+
+public class ThreadedServer implements AgentJObject {
+    PAIInterface pai = AgentJFactory.getAgentJ().getPAI();
+
+    public void init() {
+        this.nodeid = AgentJFactory.getAgentJ().getID();
+    }
+}
+
+Changes:
+
+1. AgentJObject was an interfaces.  It has been renamed to AgentJNode and it is now an abstract class that contains any functionality you might want within your Java NS2 node.
+
+2. PAI is deleted now and anything that you invoked previously from:
+
+3. AgentJFactory.getAgentJ() is deleted - you simply call the method now as it that method is contained in the AgentJNode object.
+
+So, the example becomes:
+
+public class ThreadedServer extends AgentJNode {
+    public void init() {
+        this.nodeid = getID();
+    }
+}
+
+
+Also, any method e.g. getMulticastAdddress() in AgentJVirtualMachine is now also deleted and moved to AgentJNode so you can call it directly.
+
+
+6.   In controller -  AgentJNode agentJ;  this is the current executing agentJ node - Need to think about this - do we allow more than one Agent Per controller? If not, then agentJ and agentJNode are the same
+
+7. Timers...   The Java timers pair one-to-one with the timers in C++. However, I cannot seem to delete and create timers f they reuses the same address.  For example, if I create a timer, start it, let it time out, then delete it, then create another timer straight away, the timer reuses the memory and the TimerWrapper for the timer gets allocated the same pointer as before.  When I try to start the timer, it will not start.   I tried to track this down - it seems there is one timer manager per node and this manager keeps a list of the timers per node. If you deactivate, it still have the timer in memory.  Something must be getting reset in the memory location by the timer manager which stops the timer from being activated.  I spend a few hours on this and couldn't figure it out - need to re-look at this soon. 
+  
+  - need to create a test case for Brian for this - Create a simple NSProtoAgent, create a timer like I have for AgentJ, delete it, create a new timer, then stry and start it

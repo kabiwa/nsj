@@ -1,0 +1,89 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 42;
+	objects = {
+
+/* Begin PBXFileReference section */
+		D066F4390E2F7F8D0026FCCA /* protolib */ = {isa = PBXFileReference; lastKnownFileType = folder; name = protolib; path = ../../protolib; sourceTree = SOURCE_ROOT; };
+		D066F63A0E2FAF060026FCCA /* ns-2.33 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ns-2.33"; path = "../../../../Install/c/ns-allinone-2.33/ns-2.33"; sourceTree = SOURCE_ROOT; };
+		D0A7D5800E29F717009F306A /* mdp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mdp; path = "../../../../Install/c/ns-allinone-2.33/ns-2.33/mdp"; sourceTree = SOURCE_ROOT; };
+		D0A7D6910E29F73B009F306A /* mgen */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mgen; path = "../../../../Install/c/ns-allinone-2.33/ns-2.33/mgen"; sourceTree = SOURCE_ROOT; };
+		D0A7D85A0E29F764009F306A /* nrlolsr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = nrlolsr; path = "../../../../Install/c/ns-allinone-2.33/ns-2.33/nrlolsr"; sourceTree = SOURCE_ROOT; };
+		D0A7D9100E29F796009F306A /* norm */ = {isa = PBXFileReference; lastKnownFileType = folder; name = norm; path = "../../../../Install/c/ns-allinone-2.33/ns-2.33/norm"; sourceTree = SOURCE_ROOT; };
+		D0CAC6B00E262FDB0001966D /* agentj */ = {isa = PBXFileReference; lastKnownFileType = folder; name = agentj; path = ../src/c/agentj; sourceTree = SOURCE_ROOT; };
+		D0CAC6B80E262FDB0001966D /* javm */ = {isa = PBXFileReference; lastKnownFileType = folder; name = javm; path = ../src/c/javm; sourceTree = SOURCE_ROOT; };
+		D0CAC6F90E262FDB0001966D /* utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = utils; path = ../src/c/utils; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		D0CAC4C00E262F110001966D = {
+			isa = PBXGroup;
+			children = (
+				D066F63A0E2FAF060026FCCA /* ns-2.33 */,
+				D066F4390E2F7F8D0026FCCA /* protolib */,
+				D0A7D9100E29F796009F306A /* norm */,
+				D0A7D85A0E29F764009F306A /* nrlolsr */,
+				D0A7D6910E29F73B009F306A /* mgen */,
+				D0A7D5800E29F717009F306A /* mdp */,
+				D0CAC6AF0E262FBE0001966D /* AgentJSource */,
+			);
+			sourceTree = "<group>";
+		};
+		D0CAC6AF0E262FBE0001966D /* AgentJSource */ = {
+			isa = PBXGroup;
+			children = (
+				D0CAC6B00E262FDB0001966D /* agentj */,
+				D0CAC6B80E262FDB0001966D /* javm */,
+				D0CAC6F90E262FDB0001966D /* utils */,
+			);
+			name = AgentJSource;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		D0CAC4C20E262F110001966D /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = D0CAC4C30E262F110001966D /* Build configuration list for PBXProject "AgentJ" */;
+			hasScannedForEncodings = 0;
+			mainGroup = D0CAC4C00E262F110001966D;
+			projectDirPath = "";
+			targets = (
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		D0CAC4C40E262F110001966D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Debug;
+		};
+		D0CAC4C50E262F110001966D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D0CAC4C30E262F110001966D /* Build configuration list for PBXProject "AgentJ" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0CAC4C40E262F110001966D /* Debug */,
+				D0CAC4C50E262F110001966D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D0CAC4C20E262F110001966D /* Project object */;
+}

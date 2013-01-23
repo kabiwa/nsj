@@ -1,0 +1,107 @@
+\documentclass[12pt,a4paper]{book}
+
+\usepackage{makeidx}     % allows index generation
+\usepackage[pdftex]{graphicx}    % standard LaTeX graphics tool
+                         % when including figure files
+
+\usepackage{multicol}    % used for the two-column index
+\usepackage{fullpage}     % allows index generation
+
+\makeindex           
+\newcommand{\agentj}{AgentJ}
+
+
+%% some definitions for simple changes in document
+\def\titlename    {Java Network Simulations in NS-2}
+\def\authorforinfo {Ian Taylor}
+\def\autemail     {Ian.J.Taylor@cs.cardiff.ac.uk}
+\def\subjectname  {An Installation and User Manual}
+\def\location     {Naval Research Laboratory, Code 5522.}
+\def\keywordsname {AgentJ, Ns2, Java}
+
+
+%% some information for acrobat reader
+\pdfinfo{%
+  /Title (\titlename)
+  /Author (\authorforinfo)
+  /Subject (\subjectname)
+  /Keywords (\keywordsname)
+}
+
+
+\usepackage[pdftex, colorlinks,
+            linkcolor=black,
+            citecolor=black,
+            pagecolor=black,
+            filecolor=black,
+            urlcolor=black]{hyperref}
+
+
+\begin{document}
+
+\pagestyle{empty}
+
+\begin{center}
+
+\LARGE
+
+
+\textbf{\agentj} 
+
+\vspace{0.1in}
+\textbf{\titlename}
+\vspace{0.3in}
+
+\emph{\subjectname}
+
+\vspace{1.0in}
+
+\begin{figure}[htbp]
+\begin{center}
+\includegraphics[scale=1.0]{images/agentj}
+\end{center}
+\end{figure}
+
+
+\vspace{2.0cm}
+A PROTEAN Research Group Project
+
+\vspace{0.5cm}
+\location
+
+
+\vspace{1.0in}
+\large
+\textbf{Editor, \authorforinfo (\autemail)}\\
+Contributors: Brian Adamson, Ulrich Herberg and Joe Macker
+
+
+\vspace{0.3in}
+
+\Large
+\today
+
+\end{center}
+
+\normalsize
+\frontmatter
+
+\tableofcontents
+
+\mainmatter
+
+\include{chapters/intro}
+\include{chapters/install}
+\include{chapters/agentj}
+\include{chapters/demos}
+
+\footnotesize
+
+\bibliographystyle{unsrt}
+\bibliography{agentj}
+
+\printindex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

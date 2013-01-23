@@ -1,0 +1,13 @@
+# This file is used to define application classes that should be redefined.
+# This can be used instead of, or in conjunction with an AGENTJ_CLASSPATH environment variable.
+# NOTE: The AGENTJ_CLASSPATH variable is read in the same as other environment variables, i.e. the full
+# path to files is expected, as well as system dependent path and file separators.
+# This file, on the other hand defines then relative to the agentj home env variable with forward slashes
+# for any system.
+# a line separated list of classpath components defined relative to the $AGENTJ env variable
+# NOTE: use forward slashes even on windows
+# NOTE: This file should end with a new line
+
+#/Users/scmijt/Apps/nrl/agentj/core/target/test-classes/
+
+/core/target/test-classes/

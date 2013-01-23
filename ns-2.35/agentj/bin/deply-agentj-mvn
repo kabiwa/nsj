@@ -1,0 +1,3 @@
+mvn deploy:deploy-file -DgroupId=agentj -DartifactId=agentj -Dversion=1.1 -Dpackaging=jar -Dfile=../core/target/agentj-core-1.1.jar -Durl=scp://lapis.cs.cf.ac.uk/nfs/mntI3/static/triana/html/maven -DrepositoryId=trianacode-maven-repos 
+mvn deploy:deploy-file -DgroupId=agentj -DartifactId=instrumentation -Dversion=0.2 -Dpackaging=jar -Dfile=../instrumentation/target/instrumentation-0.2.jar -Durl=scp://lapis.cs.cf.ac.uk/nfs/mntI3/static/triana/html/maven -DrepositoryId=trianacode-maven-repos 
+

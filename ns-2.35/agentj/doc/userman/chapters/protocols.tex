@@ -1,0 +1,68 @@
+\chapter{AgentJ Software Stack and Protocols}
+\label{protocols}
+
+This chapter describes the protocols that are implemented in Protolib
+
+\section{Inter-\agentj~Communication}
+
+Once an \agentj~node has been created and attached to its C++
+counterpart, it can then use the supported \agentj~communication
+and timing protocols in order to schedule events and
+communicate with other \agentj~nodes. \agentj~nodes do this
+by using \textbf{standard Java interfaces} which have been
+re-implemented in order to bind to the simulation world within
+NS2. These implementations include:
+
+\begin{itemize}
+\item \textbf{UDP Transport:} DatagramSocket and Multicast Socket have been
+rebound to PAI and Protolib to work within NS2.
+\item \textbf{TCP Transport:} under construction....
+\item \textbf{Inet Support:} a number of the InetAddress methods have been
+implemented to work within the NS2 context.
+\item \textbf{Timing Libraries:} simple interfaces to timing functions have been
+implemented so that non realtime events (i.e. NS timing events) can be triggered
+at specific intervals during the simulation.
+\end{itemize}
+
+This functionality has been implemented by re-implementing the standard Java
+interfaces to the networked Java counterparts of these functions. Therefore, in
+order to use these within your Java program for example, you simply need to
+import the \emph{pai.net} versions of DatagramSocket and MulticastSocket
+rather than the \emph{java.io} versions.
+
+
+Figure \ref{agentj:fig:javaFullOverview} gives an overview of the lower layers
+of this integration and provides a complete picture of how \agentj~uses Java
+within its implementation.  Here, the \agentj~nodes interface through the
+Java PAI libraries by using a JNI binding to the C++ PAI and underlying
+Protolib toolkits. It is this software stack that describes the full integration.
+The standard Java interfaces described above merely provide convenient
+access to these libraries.
+
+
+Therefore, an \agentj~node interacts with other \agentj~nodes
+by binding the standard Java interfaces to the PAI
+socket and timing classes within the JNI implementation, as
+indicated here. This integration allows \agentj~nodes to issue
+commands to send data between NS2 nodes and to set up callbacks
+for timing events within NS2.
+
+For this implementation, a JNI interface is provided
+between the Java PAI interface and the corresponding C++ PAI
+interface that contains the necessary underlying
+functionality. Within this implementation, the \agentj~node's
+\emph{ID} is used along within the JNI binding to the
+PAI interface in order to re-associate the Java object within its
+C++ Ns2 agent when we return back to the C++ context.
+In effect, what we are doing here is creating a JVM from C++,
+then we are using JNI to re-enter C++.
+
+However, when we do
+this, JNI has no context and therefore we cannot use static
+methods to obtain pointers to parts of the NS2 system. Therefore,
+we have to transport these pointers manually through the JVM
+so we can re-establish our context when we are back in the
+C++ world. Specifically, the \agentj~node needs to be able to
+reference its corresponding C++ NS2 agent so it can invoke
+the calls in the appropriate way. Otherwise, how would Protolib
+know which node to send the data from?

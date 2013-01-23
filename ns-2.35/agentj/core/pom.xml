@@ -1,0 +1,101 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>agentj</groupId>
+	    <artifactId>agentj</artifactId>
+	    <version>1.0</version>
+	</parent>
+  <artifactId>agentj-core</artifactId>
+  <packaging>jar</packaging>
+  <version>1.1</version>
+  <name>agentj core</name>
+  <url>http://maven.apache.org</url>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                </configuration>
+            </plugin>
+			<plugin>
+	            <groupId>org.apache.maven.plugins</groupId>
+	            <artifactId>maven-dependency-plugin</artifactId>
+	            <executions>
+	                <execution>
+	                    <id>copy-dependencies</id>
+	                    <phase>package</phase>
+	                    <goals>
+	                        <goal>copy-dependencies</goal>
+	                    </goals>
+	                    <configuration>
+	                        <outputDirectory>lib</outputDirectory>
+	                        <overWriteReleases>true</overWriteReleases>
+	                        <overWriteSnapshots>true</overWriteSnapshots>
+	                        <overWriteIfNewer>true</overWriteIfNewer>
+							<excludeTransitive>false</excludeTransitive>
+	                    </configuration>
+	                </execution>
+	            </executions>
+	        </plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.1</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<executable>/bin/bash</executable>
+					<arguments>
+						<argument>cps.sh</argument>
+						<argument>../config/class.path</argument>
+					</arguments>
+				</configuration>
+			</plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>agentj</groupId>
+            <artifactId>instrumentation</artifactId>
+            <version>0.2</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>sonoma-apps</groupId>
+            <artifactId>proto-logging</artifactId>
+            <version>0.1</version>
+            <scope>compile</scope>
+        </dependency>
+     </dependencies>
+    
+    <repositories>
+        <repository>
+            <id>proto-cu-maven-repos</id>
+            <url>http://trianacode.org/maven/proto/</url>
+        </repository>
+    </repositories>
+
+
+    <distributionManagement>
+         <repository>
+             <id>proto-cu-maven-repos</id>
+             <name>Cardiff University Computer Science Maven Repository</name>
+             <url>scp://lapis.cs.cf.ac.uk/nfs/mntI3/static/triana/html/maven/proto</url>
+         </repository>
+     </distributionManagement>
+
+
+</project>

@@ -1,0 +1,712 @@
+\chapter{Advanced \agentj}
+\label{jnipai}
+
+\section{\agentj and PAI}
+
+In the last section, we discussed the way Java objects could be
+attached to Java agents and invoke from within NS2 simulations.
+In this chapter, an overview of how such Java nodes can be used 
+to send packages between NS2 nodes by using the PAI interface,
+described in Chapt. \ref{pai}.  The Java interface contains a
+an interface to PAI through JNI that enables the Java objects
+to create sockets, attach listeners to the sockets and trigger 
+events.
+
+\subsection{Using the Java PAI Interface in Ns2 Java Objects}
+\label{jnipai:jpaireqs}
+ 
+Each Java objects that has been attached to an NS2 node
+must implement the \emph{PAIAccessInterface} given
+below, which can be found in the pai.broker package within the
+source tree:
+
+\footnotesize
+\begin{verbatim}
+package pai.broker;
+
+import pai.api.PAIInterface;
+
+public interface PAIAccessInterface {
+
+    public void setPAI(PAIInterface pai);
+}
+
+\end{verbatim}
+\normalsize
+
+
+\emph{PAIAccessInterface} provides a mechanism for the 
+\emph{JavaBroker} object to create a \emph{PAIInterface} 
+object to the JNI PAI implementation and pass this reference 
+to your Java code.  You can then use this reference 
+directly to make PAI calls just as you would if you were 
+using PAI directly.
+
+This mechanism managers the creation and deletion of the
+PAI JNI implementation and sets variables in the JNI before
+each invocation so that it has the correct reference to the 
+object it is dealing with at that moment.  Briefly, the 
+\emph{JavaBeker} only create \textbf{one} instance of
+the PAI JNI implementation. This means that before each
+call it must set the reference to the actual NS2 node it is
+about to issue a command to enabling the interface to 
+create the appropriate binding to PAI at the lower levels.
+This design adds a small overhead to each call but saves
+a substantial amount of memory since it efficiently uses
+one instance of the code rather that one for each node,
+which would increase memory consumption greatly (i.e.
+image if you had thousands of nodes).
+
+
+\section{Example 1: Sending Data From One Node to Another}
+\label{jni:node2node}
+
+This example uses the Java \emph{PAICommands} class to 
+send data between two NS2 nodes.  The actual Java
+code specifies which nodes to communicate with.
+This simple example demonstrates how Java objects
+can be attached to an NS2 nodes and used to 
+create sockets and send data between nodes.
+
+\subsection{The TCL Side}
+\label{jni:tclside}
+
+The following is the TCL script part of the implementation, which creates two 
+\emph{JavaAgent} NS2 nodes attaches the PAICommands Java object
+to them, initializes them and then sends data from the first node to
+the second by setting the NS 2 address of the second node directly from
+the script, using the \emph{setSendTo} command.
+
+\footnotesize
+\begin{verbatim}
+# Create multicast enabled simulator instance
+set ns_ [new Simulator]
+
+# Create two nodes
+set n1 [$ns_ node]
+set n2 [$ns_ node]
+
+# Put a link between them
+$ns_ duplex-link $n1 $n2 64kb 100ms DropTail
+$ns_ queue-limit $n1 $n2 100
+$ns_ duplex-link-op $n1 $n2 queuePos 0.5
+$ns_ duplex-link-op $n1 $n2 orient right
+
+puts "Creating JavaAgent NS2 agents and attach them to the nodes..."   
+set p1 [new Agent/JavaAgent]
+$ns_ attach-agent $n1 $p1
+
+set p2 [new Agent/JavaAgent]
+$ns_ attach-agent $n2 $p2
+
+puts "In script: Initializing agents  ..." 
+	
+$ns_ at 0.0 "$p1 initAgent"
+$ns_ at 0.0 "$p2 initAgent"
+
+puts "Setting Java Object to use by each agent ..." 
+
+$ns_ at 0.0 "$p1 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.PAICommands"
+$ns_ at 0.0 "$p2 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.PAICommands"
+
+puts "Starting simulation ..." 
+
+$ns_ at 0.0 "$p1 javaCommand init"
+$ns_ at 0.0 "$p2 javaCommand init"
+
+$ns_ at 0.0 "$p1 javaCommand setSendTo [$n2 node-addr]"
+$ns_ at 0.0 "$p1 javaCommand start"
+
+$ns_ at 10.0 "finish $ns_"
+
+proc finish {ns_} {
+$ns_ halt
+delete $ns_
+}
+
+$ns_ run
+
+\end{verbatim}
+\normalsize
+
+The Java classes are located and instantiate as described in Sect.
+\ref{jni:basic}. Now, we can use the \emph{javaCommand init} instruction 
+to initialize the Java  nodes, set the send to address (the node 
+where the data will be sent to) and start the node off, which 
+results in it sending the data.
+
+\subsection{The Java Side}
+\label{jni:javaside}
+
+On the java side \emph{PAICommands.java} implements various
+instructions to help send data and to trigger timers etc:
+
+\footnotesize
+\begin{verbatim}
+package pai.examples.ns2;
+
+import pai.broker.CommandInterface;
+import pai.broker.PAIAccessInterface;
+import pai.api.PAIInterface;
+import pai.net.DatagramSocket;
+import pai.net.DatagramPacket;
+import pai.net.InetAddress;
+import pai.impl.PAITimer;
+import pai.impl.Logging;
+import pai.event.PAISocketEvent;
+import pai.event.PAISocketListener;
+import java.net.SocketException;
+import java.io.IOException;
+
+public class PAICommands implements CommandInterface, PAIAccessInterface,
+                                        PAISocketListener {
+    PAIInterface pai;
+    String sendTo;
+    DatagramSocket s;
+    PAITimer t;
+    int count=0;
+
+    public void init() {
+        try {
+            s = pai.addSocket(5555);
+            pai.addPAISocketListener(s,this);
+        } catch (SocketException e) {
+            System.out.println("Error opening socket");
+        }
+        catch (IOException ep) {
+            System.out.println("Error opening socket");
+        }
+    }
+
+    void start() {
+	    timerTriggered();  // transmit first packet right away
+        }
+
+    public void dataReceived(PAISocketEvent sv) {
+        try {
+            ++count;
+            byte b[] = new byte[15];
+            DatagramPacket p = new DatagramPacket(b,b.length);
+            pai.receive(s, p);
+            if (Logging.isEnabled()) {
+                System.out.println("PAICommands: Received" + 
+                			" PACKET NUMBER ----------------> " + count);
+                System.out.println("PAICommands: Received " 
+                			+ new String(p.getData()) +
+                        			" from " + p.getAddress().getHostAddress());
+            }
+        } catch (IOException ep) {
+            System.out.println("PAICommands: Error opening socket");
+        }
+    }
+
+    public void timerTriggered() {
+        try {
+                byte b[] = (new String("Hello Proteus " + 
+                				String.valueOf(count)).getBytes());
+                DatagramPacket p =new DatagramPacket(b, b.length, 
+                					new InetAddress(sendTo), 5555);
+                pai.send(s,p);
+        }      catch (IOException eh) {
+            System.out.println("Error Sending Data");
+        }
+    }
+
+
+    public String command(String command, String args[]) {
+        if (command.equals("init")) {
+            init();
+            return "OK";
+        }
+        else if (command.equals("setSendTo")) {
+            sendTo = args[0];
+            return "OK";
+         }
+        else if (command.equals("start")) {
+            start();
+            return "OK";
+        }
+       else if (command.equals("trigger")) {
+             timerTriggered();
+             return "OK";
+         }
+       else if (command.equals("cleanUp")) {
+             pai.cleanUp();
+             return "OK";
+         }
+
+        return "ERROR";
+    }
+
+    public void setPAI(PAIInterface pai) {
+        this.pai=pai;
+    }
+}
+\end{verbatim}
+\normalsize
+
+Firstly, you'll notice that \emph{PAICommands} implements three interfaces:
+
+\begin{itemize}
+\item \textbf{CommandInterface:} so that it understands how to execute
+commands, as described in the previous chapter. 
+\item \textbf{PAIAccessInterface:} (see pai.broker.PAIAccessInterface) 
+this interface is a tagging mechanism that tells the subsystem 
+that your Java object wishes to use the JNI
+interface.  Without this, your object cannot use the efficient memory
+allocation that the subsystem provides for managing all Java objects.
+You could in principle access PAI directly but you'd have to manage 
+pointers yourselves, which would be tedious.  Using this interface,
+the \emph{JavaBroker} notifies you of the instance of the 
+\emph{pai} interface by calling the implemented method from this
+interface, called \textbf{setPAI(PAIInterface pai)}, as illustrated.  This
+allows you to store the pai reference locally and use it within your Java
+object.
+\item \textbf{PAISocketListener:} this allows your class to be notified when
+data arrives at a \emph{PAISocket}. Briefly, within Java, you attach yourself
+(or attach others) as a listener on an object and this results in the 
+notification of certain events when they arrive. To make the semantics
+clear, you have to implement an interface which enables the source object to 
+notify you when its state changes.  This is achieved generally by a listener
+interface, which PAISocketListener implements. Java listeners are an implementation
+of a callback mechanism.  Within C++ you have to point to actual functions,
+which Java you attach listeners. The interface looks like this:
+ 
+\footnotesize
+\begin{verbatim}
+package pai.event;
+
+public interface PAISocketListener {
+    public void dataReceived(PAISocketEvent event);
+}
+\end{verbatim}
+\normalsize
+
+\noindent which contains one method, \emph{dataReceived} that gets
+invoked when data arrives at the socket. The \emph{dataReceived} method
+passes a PAISocket event, which contains details about the socket that
+issued the event (i.e. you may be a listener to several sockets). Once this
+event is received, you can use \emph{pai} to retrieve the data, using the
+\emph{receive} method - which takes the socket as a parameter and
+a DatagramPacket, which is a container to hold the incoming data (this
+is the standard Java mechanism for doing this).
+\end{itemize}
+
+Briefly, the object is initialized by creating a socket on port 5555. We then
+add ourselves as a listener for events from this socket.   The \emph{start}
+method gets invoked when a \emph{start} command is received from
+the NS2 TCL script, this simply invokes the trigger function, which results
+in a data packets being sent to the the \emph{sendTo} NS2 node.  The
+\emph{sendTo} variable is set using the \emph{setSendTo} TCL
+command as described previously.
+
+Within the \emph{dataReceived} method, messages are printing our if
+logging is enabled. There is a static class in \emph{pai.impl.Logging},
+which is set globally for all classes within the JVM to turn on or off 
+comments. If it is enabled then you get a verbose output - the default
+is that it is set to \emph{on}.
+
+
+
+\section{Example 2: Using the Trigger Mechansim}
+\label{jnipai:trigger}
+
+This is a Java example, which implements the \emph{ProtoApp}
+scenario, the demonstration class for Protolib. Briefly, a trigger 
+is set off once a second to tell the Java object to send data to
+another node. When the data is received by
+the receiving NS-2 node, another Java method is 
+triggered allowing it to read the data using the  \emph{PAISocketListener}
+interface.
+
+The actual trigger mechanism is implemented in C++ but this then 
+triggers a method in the Java object to tell it to read
+the data. This example also uses the \emph{PAICommands}
+class. When the C++ trigger times out, it sends a 'trigger' command
+to the Java object, which results in the timerTriggered() method
+being called.  This is equivalent functionality to ProtoApp, but in 
+Java. However, the actual interface to the timer is set within the
+NS2 TCL script and not the C++ class, enabling the programmer
+to change the timer's parameters without having to recompile the
+whole of NS2. 
+
+\subsection{The TCL Side}
+\label{jni:tclside}
+
+The following is the TCL script part of the implementation, which creates two 
+\emph{JavaAgent} NS2 nodes attaches the PAICommands Java object
+to them, initializes them and then sets up the node that will receive the
+data by invoking the \emph{setSendTo} command on the first node - node
+0 sends data to node 1 in this example.  We then start a timer by using
+
+\footnotesize
+\begin{verbatim}
+$ns_ at 0.0 "$p1 startTimer 1 -1"
+\end{verbatim}
+\normalsize
+
+\noindent which sets off a timer that times out once per second and runs
+forever (i.e. -1 flag).  The timer is stopped at the end of the
+simultation. Here is the TCL script:
+
+\footnotesize
+\begin{verbatim}
+# Create simulator instance
+set ns_ [new Simulator]
+
+# Create two nodes
+set n1 [$ns_ node]
+set n2 [$ns_ node]
+
+# Put a link between them
+$ns_ duplex-link $n1 $n2 64kb 100ms DropTail
+$ns_ queue-limit $n1 $n2 100
+$ns_ duplex-link-op $n1 $n2 queuePos 0.5
+$ns_ duplex-link-op $n1 $n2 orient right
+
+puts "Creating PAI Broker Agents ..."   
+# Create two Protean example agents and attach to nodes
+set p1 [new Agent/JavaAgent]
+$ns_ attach-agent $n1 $p1
+
+set p2 [new Agent/JavaAgent]
+$ns_ attach-agent $n2 $p2
+
+puts "CREATED OK          ....... ..." 
+    
+# Initialize each broker telling it what its NS2 address is
+
+puts "In script: Initializing  ..." 
+	
+$ns_ at 0.0 "$p1 initAgent"
+$ns_ at 0.0 "$p2 initAgent"
+
+$ns_ at 0.0 "$p1 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.PAICommands"
+$ns_ at 0.0 "$p2 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.PAICommands"
+
+puts "Starting simulation ..." 
+
+$ns_ at 0.0 "$p1 javaCommand init"
+$ns_ at 0.0 "$p2 javaCommand init"
+
+$ns_ at 0.0 "$p1 javaCommand setSendTo [$n2 node-addr]"
+
+$ns_ at 0.0 "$p1 javaCommand start"
+
+# The timer is started within C++ code NOT Java but the
+# parameters are specified here
+
+$ns_ at 0.0 "$p1 startTimer 1 -1"
+
+# Stop
+$ns_ at 9.0 "$p1 stopTimer"
+$ns_ at 9.0 "$p2 stopTimer"
+
+#Clean up objects
+
+$ns_ at 10.0 "$p1 cleanUp"
+$ns_ at 10.0 "$p2 cleanUp"
+
+$ns_ at 10.0 "finish $ns_"
+
+proc finish {ns_} {
+$ns_ halt
+delete $ns_
+}
+
+$ns_ run
+\end{verbatim}
+\normalsize
+
+This example, will run the timer once per second (well, NS2 second anyway - 
+which is non real-time so in effect one second will be microseconds ....) and
+iterate for 10 iterations as specified by the NS2 time-stepping as shown.
+
+
+\section{Example 3: Sending Data Using Multicast}
+\label{jni:multicast}
+
+A Java example, which also implements the ProtoApp
+scenario but this timer uses a multicast address
+to send the data between the nodes.  The first node
+sends the data to the multicast address and the second
+node listens to this address and gets notified when 
+something happens.  This example uses the
+\emph{pai.examples.ns2.MulticastTimerDemo} Java class
+to implement the Java functionality.
+
+
+\subsection{The TCL Side}
+\label{jni:tclside}
+
+The following is the TCL script part of the implementation, which creates
+a muticast enabled NS2 and creates a multicast address for 
+communication.  The multicast address to be used must be specified in 
+NS2 and then passed to the Java objects so they know which address 
+to use i.e. by using the \emph{setGroupAddress} java TCL script 
+command as illustrated below. Two \emph{JavaAgent} NS2 nodes are
+created and attach a \emph{MulticastTimerDemo} object: 
+
+\footnotesize
+\begin{verbatim}
+# Create multicast enabled simulator instance
+set ns_ [new Simulator -multicast on]
+$ns_ multicast
+
+# Create two nodes
+set n1 [$ns_ node]
+set n2 [$ns_ node]
+
+# Put a link between them
+$ns_ duplex-link $n1 $n2 64kb 100ms DropTail
+$ns_ queue-limit $n1 $n2 100
+$ns_ duplex-link-op $n1 $n2 queuePos 0.5
+$ns_ duplex-link-op $n1 $n2 orient right
+
+# Configure multicast routing for topology
+set mproto DM
+set mrthandle [$ns_ mrtproto $mproto  {}]
+ if {$mrthandle != ""} {
+     $mrthandle set_c_rp [list $n1]
+}
+
+# 5) Allocate a multicast address to use
+set group [Node allocaddr]
+   
+puts "Creating Java Broker Agents ..."   
+# Create two Protean example agents and attach to nodes
+set p1 [new Agent/JavaAgent]
+$ns_ attach-agent $n1 $p1
+
+set p2 [new Agent/JavaAgent]
+$ns_ attach-agent $n2 $p2
+
+puts "CREATED OK          ....... ..." 
+    
+# Initialize C++ agents
+
+puts "In script: Initializing  ..." 
+	
+$ns_ at 0.0 "$p1 initAgent"
+$ns_ at 0.0 "$p2 initAgent"
+
+#set up the class
+
+$ns_ at 0.0 "$p1 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.MulticastTimerDemo"
+$ns_ at 0.0 "$p2 setClass 
+/Users/scmijt/Apps/nrl/p2ps-ns2/classes pai.examples.ns2.MulticastTimerDemo"
+
+puts "Starting simulation ..." 
+
+$ns_ at 0.0 "$p1 javaCommand setGroupAddress $group"
+
+$ns_ at 0.0 "$p1 javaCommand init"
+$ns_ at 0.0 "$p2 javaCommand init"
+
+$ns_ at 0.0 "$p1 javaCommand start"
+
+# The timer is started within C++ code NOT Java but the
+# parameters are specified here
+
+$ns_ at 0.0 "$p1 startTimer 1 -1"
+
+# Stop
+$ns_ at 9.0 "$p1 stopTimer"
+$ns_ at 9.0 "$p2 stopTimer"
+
+#Clean up objects 
+
+$ns_ at 10.0 "$p1 cleanUp"
+$ns_ at 10.0 "$p2 cleanUp"
+
+$ns_ at 10.0 "finish $ns_"
+
+proc finish {ns_} {
+$ns_ halt
+delete $ns_
+}
+
+$ns_ run
+\end{verbatim}
+\normalsize
+
+We then initialize the two \emph{JavaAgent} NS2 nodes
+start the first node. This results in the first node sending a data
+packet to the chosen Multicast address, which results in the second node
+receiving notification of this transfer. The timer is then kicked off,
+which repeats this process 10 times
+
+\subsection{The Java Side}
+\label{jni:javaside}
+
+On the java side \emph{MulticastTimerDemo.java} implements various
+commands, rather similar to the PAICommands class, except that it
+replaces the \emph{setSender} function with the Multicast address,
+enabling all nodes to talk to a central address. This enables nodes to
+automatically send data to collections of nodes and it is this process
+that will enable P2PS to discover the address of other nodes using
+its discovery mechanisms. The code looks like this:
+
+\footnotesize
+\begin{verbatim}
+package pai.examples.ns2;
+
+import pai.broker.CommandInterface;
+import pai.broker.PAIAccessInterface;
+import pai.broker.JavaBroker;
+import pai.api.PAIInterface;
+import pai.net.DatagramSocket;
+import pai.net.DatagramPacket;
+import pai.net.InetAddress;
+import pai.net.MulticastSocket;
+import pai.impl.PAITimer;
+import pai.impl.Logging;
+import pai.event.PAISocketEvent;
+import pai.event.PAISocketListener;
+
+import java.net.SocketException;
+import java.io.IOException;
+
+/**
+ * @author Ian Taylor.
+ * A demo of a NS2 Java Object that
+ */
+public class MulticastTimerDemo implements CommandInterface, PAIAccessInterface,
+                                        PAISocketListener {
+    PAIInterface pai;
+    MulticastSocket s;
+    PAITimer t;
+    int count=0;
+
+    public void init() {
+
+        try {
+            s = new MulticastSocket(5555);
+            pai.addPAISocketListener(s,this);
+            pai.joinGroup(s, 
+            		new InetAddress(JavaBroker.getMulticastAddress()));
+        } catch (SocketException e) {
+            System.out.println("Error opening socket");
+        }
+        catch (IOException ep) {
+            System.out.println("Error opening socket");
+        }
+    }
+
+    void start() {
+   	    timerTriggered();  // transmit first packet right away
+        }
+
+    public void dataReceived(PAISocketEvent sv) {
+        try {
+            System.out.println("Receiving ----------------------------");
+            ++count;
+            byte b[] = new byte[15];
+            DatagramPacket p = new DatagramPacket(b,b.length);
+            pai.receive(s, p);
+            if (Logging.isEnabled()) {
+                System.out.println("PAICommands: Received " + 
+                			"PACKET NUMBER ----------------> " + count);
+
+                System.out.println("PAICommands: Received " 
+                			+ new String(p.getData()) +
+                        			" from " + p.getAddress().getHostAddress());
+            }
+        } catch (IOException ep) {
+            System.out.println("PAICommands: Error opening socket");
+        }
+    }
+
+    public void timerTriggered() {
+        try {
+            byte b[] = (new String("Hello Proteus " + 
+                					String.valueOf(count)).getBytes());
+            System.out.println("Address is " +  
+                			JavaBroker.getMulticastAddress());
+            DatagramPacket p =new DatagramPacket(b, b.length, 
+                 new InetAddress(JavaBroker.getMulticastAddress()), 5555);
+            pai.send(s,p);
+        }      catch (IOException eh) {
+            System.out.println("Error Sending Data");
+        }
+    }
+    
+    public String command(String command, String args[]) {
+        if (command.equals("init")) {
+            init();
+            return "OK";
+        }
+        else if (command.equals("start")) {
+            start();
+            return "OK";
+        }
+       else if (command.equals("trigger")) {
+             timerTriggered();
+             return "OK";
+         }
+       else if (command.equals("cleanUp")) {
+             pai.cleanUp();
+             return "OK";
+         }
+        return "ERROR";
+    }
+
+    public void setPAI(PAIInterface pai) {
+        this.pai=pai;
+    }
+}
+\end{verbatim}
+\normalsize
+
+
+The first thing to notice here is that we are not using the \emph{PAI}
+Java interface to create our Multicast socket, but we are using the
+\emph{MulticastSocket} class.  The \emph{MulticastSocket} class
+we are using here is the PAI re-implementation of the java.io.MulticastSocket 
+class for use with our Java PAI interface.  The actual implementation
+of \emph{MulticastSocket} simply calls the PAI interface in order to 
+create the appropriate socket, that is in this case, it creates a
+normal DatagramSocket by using the default constructor and sets
+Multicast to \emph{true} on this socket so that it can join the 
+multicast group address.
+
+The actual multicast group address being used is set from the
+TCL script, as described.  Java NS2 object gain access to this
+address by using the:
+
+\footnotesize
+\begin{verbatim}
+           JavaBroker.getMulticastAddress();
+\end{verbatim}
+\normalsize
+
+\noindent static method call.  This enables any Java object 
+within this JVM to gain access to the default Multicast address 
+that it should use.  P2PS uses this same address also when 
+communicating with other P2PS nodes, as we will see in Chapt.
+\ref{paip2ps}.   Here therefore, we join the Multicast group
+by issuing the following PAI command:
+
+\footnotesize
+\begin{verbatim}
+            pai.joinGroup(s, new InetAddress(JavaBroker.getMulticastAddress()));
+\end{verbatim}
+\normalsize
+
+The rest of the class simply implements the same functionality
+as the PAICommands class discuss earlier in this chapter.
+
+\section{Conclusion}
+
+In this chapter, the Java PAI interface was discussed. An overview
+of the architecture was given and a brief description of how the
+classes implement this functionality. We then outlined three
+examples, which show how one would send data between NS2 
+nodes, how one would use the timing interface to send repeated
+calls and how one would use a Multicast address to send data to 
+any nodes that are listening to this address.

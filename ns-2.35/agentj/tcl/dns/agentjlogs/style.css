@@ -1,0 +1,73 @@
+body 
+{
+	font-family:Tahoma;
+	font-size:.8em;
+	color:DarkSlateBlue;
+	background-color: PapayaWhip;
+}
+
+.txt, .lab {
+	float: left; padding-left: 5px; padding-top: 5px; padding-right: 5px; margin: 5px; width: 100px;
+}
+
+.lab {
+	font-weight: bold;
+}
+
+.txt {
+	padding-bottom: 5px;
+	padding-top: 0px;
+}
+
+.row {
+	clear: left;
+}
+
+fieldset {
+	border: 1px solid;
+	padding: 10px;
+	margin: 5px;
+	clear: left;
+}
+
+span {
+	display: block; 
+}
+
+legend {
+	font-weight: bold;
+}
+
+a:link {
+    color: DarkRed;
+}
+
+a:visited {
+    color: DarkRed;
+}
+
+a:active, a:hover {
+    color: Crimson;
+}
+
+.orange {
+	background-color: Orange;
+}
+.mediumspringgreen {
+	background-color: MediumSpringGreen;
+}
+.lawngreen {
+	background-color: LawnGreen;
+}
+.lavender {
+	background-color: Lavender;
+}
+.lightsalmon {
+	background-color: LightSalmon;
+}
+.lightpink {
+	background-color: LightPink;
+}
+.coral {
+	background-color: Coral;
+}
